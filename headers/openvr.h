@@ -1046,7 +1046,7 @@ namespace vr
 #define VR_INTERFACE extern "C" __declspec( dllimport )
 #endif
 
-#elif defined(GNUC) || defined(COMPILER_GCC)
+#elif defined(__linux__) || defined(COMPILER_GCC)
 
 #ifdef VR_API_EXPORT
 #define VR_INTERFACE extern "C" __attribute__((visibility("default")))

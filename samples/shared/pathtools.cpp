@@ -14,9 +14,11 @@
 #include "osxfilebridge.h"
 #define _S_IFDIR S_IFDIR     // really from tier0/platform.h which we dont have yet
 #define _MAX_PATH MAX_PATH   // yet another form of _PATH define we use
-#elif defined(LINUX)
+#elif defined(__linux__)
 #include <dlfcn.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <strings.h>
 #endif
 
 #include <sys/stat.h>
@@ -35,7 +37,7 @@ std::string Path_GetExecutablePath()
 	uint32_t _nBuff = nBuff; 
 	bSuccess = _NSGetExecutablePath(rchPath, &_nBuff) == 0;
 	rchPath[nBuff-1] = '\0';
-#elif defined LINUX
+#elif defined __linux__
 	ssize_t nRead = readlink("/proc/self/exe", rchPath, nBuff-1 );
 	if ( nRead != -1 )
 	{
@@ -47,7 +49,7 @@ std::string Path_GetExecutablePath()
 		rchPath[ 0 ] = '\0';
 	}
 #else
-	AssertMsg( false, "Implement Plat_GetExecutablePath" );
+	//AssertMsg( false, "Implement Plat_GetExecutablePath" );
 #endif
 
 	if( bSuccess )
@@ -358,7 +360,7 @@ std::string GetThisModulePath()
 	delete [] pchPath;
 	return sPath;
 
-#elif defined( OSX ) || defined( LINUX )
+#elif defined( OSX ) || defined( __linux__ )
 	// get the addr of a function in vrclient.so and then ask the dlopen system about it
 	Dl_info info;
 	dladdr( (void *)GetThisModulePath, &info );
@@ -385,7 +387,7 @@ bool Path_IsDirectory( const std::string & sPath )
 		return false;
 	}
 
-#if defined(LINUX)
+#if defined(__linux__)
 	return S_ISDIR( buf.st_mode );
 #else
 	return ( buf.st_mode & _S_IFDIR ) != 0;
@@ -424,7 +426,7 @@ std::string Path_FindParentDirectoryRecursively( const std::string &strStartDire
 
 	bool bExists = Path_Exists( strCurrentPath );
 	std::string strCurrentDirectoryName = Path_StripDirectory( strCurrentPath );
-	if ( bExists && stricmp( strCurrentDirectoryName.c_str(), strDirectoryName.c_str() ) == 0 )
+	if ( bExists && strcasecmp( strCurrentDirectoryName.c_str(), strDirectoryName.c_str() ) == 0 )
 		return strCurrentPath;
 
 	while( bExists && strCurrentPath.length() != 0 )
@@ -432,7 +434,7 @@ std::string Path_FindParentDirectoryRecursively( const std::string &strStartDire
 		strCurrentPath = Path_StripFilename( strCurrentPath );
 		strCurrentDirectoryName = Path_StripDirectory( strCurrentPath );
 		bExists = Path_Exists( strCurrentPath );
-		if ( bExists && stricmp( strCurrentDirectoryName.c_str(), strDirectoryName.c_str() ) == 0 )
+		if ( bExists && strcasecmp( strCurrentDirectoryName.c_str(), strDirectoryName.c_str() ) == 0 )
 			return strCurrentPath;
 	}
 
@@ -472,10 +474,10 @@ std::string Path_FindParentSubDirectoryRecursively( const std::string &strStartD
 unsigned char * Path_ReadBinaryFile( const std::string &strFilename, int *pSize )
 {
 	FILE *f;
-#if defined( POSIX )
+#if defined( __linux__ )
 	f = fopen( strFilename.c_str(), "rb" );
 #else
-	errno_t err = fopen_s(&f, strFilename.c_str(), "rb");
+	int err = fopen(&f, strFilename.c_str(), "rb");
 	if ( err != 0 )
 	{
 		f = NULL;
@@ -538,10 +540,10 @@ std::string Path_ReadTextFile( const std::string &strFilename )
 bool Path_WriteStringToTextFile( const std::string &strFilename, const char *pchData )
 {
 	FILE *f;
-#if defined( POSIX )
+#if defined( __linux__ )
 	f = fopen( strFilename.c_str(), "w" );
 #else
-	errno_t err = fopen_s(&f, strFilename.c_str(), "w");
+	int err = fopen(&f, strFilename.c_str(), "w");
 	if ( err != 0 )
 	{
 		f = NULL;
